@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppShell
-      user={{ name: user.name, email: user.email }}
+      user={{ name: user.name, email: user.email, role: user.role }}
       chapters={chapters.map((chapter) => ({
         id: chapter.id,
         slug: chapter.slug,

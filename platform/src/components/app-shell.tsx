@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
-import { BookOpen, Check, Clock, LayoutDashboard, LogOut, Menu, X } from 'lucide-react';
+import { BookOpen, Check, Clock, LayoutDashboard, LogOut, Menu, Shield, X } from 'lucide-react';
 
 import { TimerPill } from '@/components/timer-pill';
 import { ProgressRing } from '@/components/progress-ring';
+import { SessionPulse } from '@/components/session-pulse';
 import { logoutAction } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 
@@ -20,7 +21,7 @@ type ChapterNavItem = {
 };
 
 type Props = {
-  user: { name: string | null; email: string };
+  user: { name: string | null; email: string; role: string };
   chapters: ChapterNavItem[];
   activeTimer: { id: string; startedAt: string; chapterId: string | null } | null;
   children: ReactNode;
@@ -31,6 +32,8 @@ const NAV = [
   { href: '/book', label: 'The Book', icon: BookOpen },
   { href: '/time', label: 'Time Log', icon: Clock },
 ];
+
+const ADMIN_NAV = { href: '/admin', label: 'Admin', icon: Shield };
 
 export function AppShell({ user, chapters, activeTimer, children }: Props) {
   const pathname = usePathname();
@@ -56,7 +59,7 @@ export function AppShell({ user, chapters, activeTimer, children }: Props) {
       </div>
 
       <nav className="flex flex-col gap-1 px-3">
-        {NAV.map((item) => {
+        {(user.role === 'admin' ? [...NAV, ADMIN_NAV] : NAV).map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           return (
@@ -153,6 +156,7 @@ export function AppShell({ user, chapters, activeTimer, children }: Props) {
 
   return (
     <div className="min-h-screen">
+      <SessionPulse />
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--line)] bg-[#0a0b0f]/90 backdrop-blur lg:block">
         {sidebar}

@@ -65,6 +65,7 @@ re-seeds by upserting, so it's safe to run again after pulling changes.
 | `npm run db:create`| create `DATABASE_URL`'s database if it doesn't exist    |
 | `npm run db:push`  | push the Drizzle schema to the database                 |
 | `npm run db:seed`  | import `../book/*.md` + the syllabus CSV                |
+| `npm run db:admin` | promote a user: `npm run db:admin -- you@example.com`    |
 | `npm run db:setup` | `db:create` → `db:push` → `db:seed`                     |
 
 ## Project layout

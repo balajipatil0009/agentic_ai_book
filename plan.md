@@ -1,6 +1,6 @@
 # Plan — Login tracking + admin dashboard
 
-Status: **planned, not implemented.**
+Status: **implemented.**
 Confirmed decisions: both sign-in events *and* online time · `role` column + CLI promote script ·
 overview + users table + activity feed · store IP and user agent on each sign-in.
 

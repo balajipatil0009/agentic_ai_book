@@ -10,6 +10,7 @@
     "db:create": "tsx scripts/create-db.ts",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
+    "db:admin": "tsx scripts/make-admin.ts",
     "db:setup": "npm run db:create && npm run db:push && npm run db:seed"
   },
   "dependencies": {

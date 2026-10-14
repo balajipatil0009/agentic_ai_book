@@ -2,6 +2,7 @@ import {
   boolean,
   index,
   integer,
+  pgEnum,
   pgTable,
   primaryKey,
   text,
@@ -9,6 +10,9 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+
+export const userRole = pgEnum('user_role', ['user', 'admin']);
+export const loginKind = pgEnum('login_kind', ['login', 'logout']);
 
 /* ------------------------------------------------------------------ */
 /* Accounts                                                            */
@@ -21,6 +25,7 @@ export const users = pgTable(
     email: text('email').notNull(),
     name: text('name'),
     passwordHash: text('password_hash').notNull(),
+    role: userRole('role').notNull().default('user'),
     dailyGoalMinutes: integer('daily_goal_minutes').notNull().default(60),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -189,8 +194,48 @@ export const studySessions = pgTable(
   (t) => [index('study_sessions_user_idx').on(t.userId), index('study_sessions_user_day_idx').on(t.userId, t.day)],
 );
 
+/* ------------------------------------------------------------------ */
+/* Login tracking — audit feed + online-time sessions                  */
+/* ------------------------------------------------------------------ */
+
+export const loginEvents = pgTable(
+  'login_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: loginKind('kind').notNull(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).defaultNow().notNull(),
+    ip: text('ip').notNull().default(''),
+    userAgent: text('user_agent').notNull().default(''),
+  },
+  (t) => [index('login_events_user_time_idx').on(t.userId, t.occurredAt.desc())],
+);
+
+export const userSessions = pgTable(
+  'user_sessions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
+    lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).defaultNow().notNull(),
+    endedAt: timestamp('ended_at', { withTimezone: true }),
+    /** Heartbeat-accrued seconds; idle gaps over the cap are never counted. */
+    activeSeconds: integer('active_seconds').notNull().default(0),
+  },
+  (t) => [
+    index('user_sessions_user_idx').on(t.userId),
+    index('user_sessions_last_seen_idx').on(t.lastSeenAt),
+  ],
+);
+
 export type User = typeof users.$inferSelect;
 export type Course = typeof courses.$inferSelect;
 export type Chapter = typeof chapters.$inferSelect;
 export type Section = typeof sections.$inferSelect;
 export type StudySession = typeof studySessions.$inferSelect;
+export type LoginEvent = typeof loginEvents.$inferSelect;
+export type UserSession = typeof userSessions.$inferSelect;

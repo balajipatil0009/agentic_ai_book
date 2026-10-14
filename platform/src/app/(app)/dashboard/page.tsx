@@ -136,14 +136,14 @@ function WeekBars({ totals }: { totals: Record<string, number> }) {
   const max = Math.max(60, ...values);
 
   return (
-    <div className="flex h-28 items-end gap-2">
+    <div className="flex h-28 items-stretch gap-2">
       {days.map((day, index) => {
         const minutes = values[index];
         const height = Math.max(3, Math.round((minutes / max) * 100));
         const isToday = index === days.length - 1;
         return (
           <div key={day} className="flex flex-1 flex-col items-center gap-2">
-            <div className="flex h-full w-full items-end">
+            <div className="flex w-full flex-1 items-end">
               <div
                 className={cn(
                   'w-full rounded-t-[5px] transition-all',

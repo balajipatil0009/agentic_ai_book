@@ -4,10 +4,25 @@ import { redirect } from 'next/navigation';
 import { eq } from 'drizzle-orm';
 
 import { db } from '@/db';
-import { users } from '@/db/schema';
-import { createSession, destroySession, hashPassword, verifyPassword } from '@/lib/auth';
+import { loginEvents, users, userSessions } from '@/db/schema';
+import {
+  clientInfo,
+  createSession,
+  destroySession,
+  getSession,
+  hashPassword,
+  verifyPassword,
+} from '@/lib/auth';
+import { bumpSession } from '@/lib/presence';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/** Opens the `user_sessions` row + audit event that back the admin dashboard. */
+async function openSession(userId: string, sid: string) {
+  const { ip, userAgent } = await clientInfo();
+  await db.insert(userSessions).values({ id: sid, userId });
+  await db.insert(loginEvents).values({ userId, kind: 'login', ip, userAgent });
+}
 
 export async function registerAction(
   _prev: { error?: string },
@@ -33,7 +48,8 @@ export async function registerAction(
     .values({ email, name: name || null, passwordHash })
     .returning({ id: users.id });
 
-  await createSession(row.id);
+  const sid = await createSession(row.id);
+  await openSession(row.id, sid);
   redirect('/dashboard');
 }
 
@@ -50,11 +66,27 @@ export async function loginAction(
     return { error: 'Invalid email or password.' };
   }
 
-  await createSession(row.id);
+  const sid = await createSession(row.id);
+  await openSession(row.id, sid);
   redirect('/dashboard');
 }
 
 export async function logoutAction(): Promise<void> {
+  const session = await getSession();
+
+  if (session?.sid) {
+    const { ip, userAgent } = await clientInfo();
+    // Final heartbeat so the last visible stretch is credited, then close.
+    await bumpSession(session.sid);
+    await db
+      .update(userSessions)
+      .set({ endedAt: new Date() })
+      .where(eq(userSessions.id, session.sid));
+    await db
+      .insert(loginEvents)
+      .values({ userId: session.userId, kind: 'logout', ip, userAgent });
+  }
+
   await destroySession();
   redirect('/');
 }
